@@ -1,25 +1,365 @@
+"""
+# 라이브러리 재 로딩
+
+import lib_lamune as lmn
+lmn.reload(lmn)
+
+"""
+
+"""
+# 구글 드라이브 mount
+from google.colab import drive
+drive.mount('/content/drive')
+"""
+
+
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+# 라이브러리 로딩
+
+import sys
+
+# if "google.colab" in sys.modules:
+#     # Install packages in Colab
+#     !pip install category_encoders==2.*
+#     !pip install eli5
+#     !pip install pandas-profiling==2.*
+#     !pip install pdpbox
+#     !pip install --upgrade xgboost
+
+# # !conda install -c conda-forge pdpbox
+
+import warnings
+warnings.filterwarnings("ignore")
+
+
 # 상필이 작업용 라이브러리
 from importlib import reload
-from IPython.display import display
 import pickle
 import time
 
+from IPython.display import display
 
-import pandas as pd
+import re
+import math
+import random
 import numpy as np
 from numpy import arange
+import pandas as pd
+#pandas에서 DataFrame을 요약해서 표시하지 않도록 설정
+pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_rows', None)
 
-
+# 시각화 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import seaborn as sns 
+import seaborn as sns
+
+# AI 
+import sklearn
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from scipy import stats
+from scipy.stats import ttest_1samp, ttest_ind
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+# xgboost.config.set_config(verbosity=0)
+
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+# 기본 함수 정의
+
+# 줄 구분 표시 출력 
+def print_line() :
+  print ("\n------------------------------------------------")
+def print_line_m() :
+  print ("\n-----------------------")
+def print_line_s() :
+  print ("\n----------")
+
+# 기본 함수 정의
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+# EDA 함수
+
+
+# 결측치가 포함된 df를 반환 한다. ( copy 된 data)
+"""
+    str_replace = np.nan # 결측치를 변경할 문자
+    ,need_replace = False # 결측치 변경이 필요한지 여부 
+    ,need_drop = False # 결측치 행의 삭제가 필요한지 여부
+"""
+def 결측치행열조회( df_target , str_replace = np.nan , need_replace = False , need_drop = False) :
+
+    # 결측치로 인식할 문자열
+    #str_replace = '-' # 결측치를 변경할 문자
+    lst_na_str = [ np.NaN , '-' , "N/A" 'NA' , 'na', 'NaN' , "" ]   # 결측치로 인식할 문자들 
+
+    # 조회
+    cond_tmp1 = df_target.isin(lst_na_str).any( axis= 1)
+
+    # isnull()의 결과는 위에 포함 되므로 반복 처리 해 주지 않아도 된다. 
+    """
+    # 빈값 조회
+    cond_tmp2 = df_target.isnull().any(axis= 1)
+
+    # 빈값 이거나, 빈값 문자열인 경우
+    cond_tmp3 = cond_tmp1 | cond_tmp2
+
+    set_1 = set(trueIndex리스트반환( cond_tmp1 ))
+    set_2 = set(trueIndex리스트반환( cond_tmp2 ))
+
+    print ( set_1 > set_2 )
+    print ( set_1 == set_2 )
+    print ( set_1 < set_2 )"""
+
+    # 결측치가 포함된 컬럼명 조회
+    sri_tmp = df_target.isin(lst_na_str).any()
+    list_col = sri_tmp[sri_tmp == True].index
+
+    # 작업 Df 생성
+    df_tmp = df_target[cond_tmp1][list_col].copy()
+    #display ( df_tmp  )
+    #display ( df_target[cond_tmp1][list_col]  )
+
+    # 출력
+    print ( f"결측치가 포함된 Data 갯수 {len(df_tmp)} / { len(df_target)} " )
+    print ( f"각 컬럼별 결측치 갯수")
+    print ( f"{df_tmp.isin(lst_na_str).sum()}")
+
+    # (TODO)결측치로 인식한 문자열을  str_replace 으로 변경
+    if need_replace :
+        df_tmp.replace( np.nan , str_replace , inplace=True)
+
+    # 결측치 행 삭제
+    if need_drop :
+        df_target.drop(df_tmp.index , inplace=True)
+
+    return df_tmp
+
+
+# EDA 기본정보 자동 분석 함수
+def eda_info (df_param, need_category = False , category_count = 20) :
+
+  df_target = df_param
+  
+  # df 변형이 필요한 경우 copy 
+  if need_category :
+    df_target = df_param.copy()
+  
+  list_columns = df_target.columns
+
+  # 데이터셋 정보 확인
+  #: 컬럼 자료형 , 전체 자료 갯수 , 컬럼 갯수 , 결측치 여부 , 전체 data 크기
+  print_line()
+  print ( "# 데이터셋 정보 확인" )
+  print ( df_target.info() )
+
+
+  # 컬럼 자료형 조회 (dtypes 이용) 
+  #df_titanic.dtypes
+
+
+  # 데이터의 행열 크기 조회
+  print_line()
+  print( "# 데이터의 행열 크기 = " , df_target.shape )
+
+
+  # 결측치가 존재하는 컬럼명 조회
+  print_line()
+  """
+  print( "# 컬럼별 결측치 갯수 ")
+  print( df_target.isnull().sum() )
+
+  print_line()
+  print( "# 결측치 총 갯수 = " , df_target.isnull().sum().sum())
+  """
+  df_null = 결측치행열조회( df_target )
+  print ( df_null.head(print_row_count) )
+
+
+  # 컬럼별 중복값 확인
+  print_line()
+  print( "# 컬럼별 중복값 확인 ")
+  for tmp_column in list_columns :
+    # 중복값 갯수 조회
+    tmp_dup_count = df_target[tmp_column].duplicated(keep = False).sum()
+    
+    if tmp_dup_count > 0 :
+      print ( tmp_column , "컬럼에 중복값", tmp_dup_count , "개" )
+      #print ( "index = " , df_target[tmp_column].duplicated(keep = False)   )
+      #TODO : 중복값 인덱스 출력
+    
+  # 중복 데이터 확인
+  print( "중복 data 갯수(전체)" , df_target.duplicated(keep = False).sum() )
+  print( "중복 data " , df_target[df_target.duplicated(keep = False)].head(print_row_count) )
+
+
+  # 각 컬럼별 값의 비율 조회
+  # 컬럼명 조회
+  print_line()
+  print( "# 컬럼별 값의 비율 ")
+  print ("컬럼 목록= " , list_columns)
+
+  # 컬럼별 값의 비율 조회
+  list_category_col_name = [] # 카테고리화 가능할 것으로 예상되는 컬럼명
+  for tmp_column in list_columns :
+    df_temp = df_target[tmp_column].value_counts(normalize=True ,dropna = True)
+    
+    print_line_s()
+    print ( f"컬럼명 = {tmp_column} , 값의종류 갯수 = {len(df_temp)} " )
+    
+    if len(df_temp) <= category_count :
+      list_category_col_name.append( tmp_column )
+      print ( "Category 가능성 있음")
+      print ( df_temp )
+    #else :
+      #print ( "값의 종류가 20개 이상임" )
+
+
+  # 카테고리화 가능한 컬럼은 카테고리화 진행 
+  if need_category :
+    print ( "카테고리화 진행")
+    for col_name in list_category_col_name :
+      df_target[col_name] = df_target[col_name].astype('category')
+
+
+  # 컬럼별 통계치 확인
+  print_line()
+  print ( "#컬럼별 통계특성 확인" )
+  print ( df_target.describe())
+
+
+  # 컬럼별 포함된 큭수문자 의 종류 조회
+  print_line()
+  print( "# 컬럼별 포함된 특수문자 종류 ")
+  regx_특수문자제외한 = r'([^0-9a-zA-Z]+)'
+  for tmp_column in list_columns :
+
+    if df_target[tmp_column].dtype == 'object'  :
+      print ( "컬럼명 = " , tmp_column )
+      
+      df_rslt = df_target[tmp_column].str.extractall( r'([^0-9a-zA-Z]+)'  )
+      #display ( type(df_rslt) ) #=> DataFrame 
+
+      set_rslt = []
+      for idx in df_target.index :
+        
+        # TODO 값이 Nan인 경우의 정규표현식을 조사하지 않도록 한다,
+        # 우선은 str인 경우만 
+        tmp_val = df_target.loc[ idx , tmp_column]
+        if isinstance( tmp_val , str) : 
+          rslt = re.findall ( regx_특수문자제외한 , df_target.loc[ idx , tmp_column] )
+          set_rslt += rslt 
+        #else :
+        #  display ( tmp_val )
+
+      print( set(set_rslt) )
+      
+      print_line_s()
+
+
+  # category 컬럼의 각 값 별 갯수와 비율 조회
+  print_line()
+  print ( "#category 타입 컬럼의 각 값 갯수와 비율 조회" )
+  list_category_col_name = df_target.dtypes[df_target.dtypes.values == 'category'].index.tolist() 
+  for col_name in list_category_col_name :
+    sri_a = df_target[col_name].value_counts(dropna = True)
+    sri_b = df_target[col_name].value_counts(normalize=True ,dropna = True)
+    df_a = sri_a.to_frame( name = 'count')
+    df_b = sri_b.to_frame( name = 'ratio')
+
+    print (f"컬럼명 = {col_name} ")
+    print ( df_a.join( df_b ) )
+    print_line_s()
+
+  #TODO 컬럼별 값 분포 그래프 표시
+  #Boxplot과 Histogram을 통해서도 이상치 존재 여부를 확인해볼 수 있습니다.
+
+  return df_target
+
+# 숫자와 . 이외에 어떤 문자가 들어가 있는지 확인 하고 문제가 있는 Data를 df 형식으로 반환
+# 
+def 숫자이외의문자확인 (df_target , list_columns ) :
+  list_err_idx = []
+  regx_숫자를제외한 = r'([^0-9.]+)'
+  for tmp_column in list_columns :
+
+    if df_target[tmp_column].dtype == 'object'  :
+      print ( "컬럼명 = " , tmp_column )
+      
+      df_rslt = df_target[tmp_column].str.extractall( regx_숫자를제외한  )
+      #display ( type(df_rslt) ) #=> DataFrame 
+
+      list_err_str = [] 
+      for idx in df_target.index :
+        tmp_val = df_target.loc[ idx , tmp_column]
+
+        # TODO 값이 Nan인 경우의 정규표현식을 조사하지 않도록 하는 조건 추가
+        # 우선은 str인 경우만 체크 진행 하도록 하였음
+        if isinstance( tmp_val , str) : 
+
+          rslt = re.findall ( regx_숫자를제외한 , df_target.loc[ idx , tmp_column] )
+          if len(rslt) != 0 :
+            list_err_str += rslt
+            list_err_idx.append( idx )
+
+        #else :
+        #  display ( tmp_val )
+
+      print( set(list_err_str) )
+      
+      print_line_s()
+
+  err_idx = sorted( set(list_err_idx)) 
+
+  # err 데이터 반환
+  return df_target.loc[err_idx]
+
+# DataFrame의 특정 컬럼의 data중에서 cond_sel 조건에 맞는 data를 fix_func 으로 수정 후 수정된 DataFrame을 반환
+def fix_column_err_value ( df_temp_clean: pd.DataFrame , target_column: '수정할 column 명' 
+                          , cond_sel:'수정 데이터 check 조건' 
+                          , fix_func:'err를 수정할 함수' 
+                          ) -> pd.DataFrame : #'수정된 DataFrame' 
+
+    # err 조건에 해당하는 data 조회
+    sri_err = df_temp_clean[ target_column ].apply( cond_sel )
+
+    # 조회 결과 확인 
+    display ( "수정전")
+    display ( sri_err.sum() )
+    display ( df_temp_clean.loc[ sri_err ].head(print_row_count) )
+
+
+    # 오류를 수정 후 data 확인
+    #(TODO) sri_fixed_col = df_temp_clean.loc[ sri_err ][[target_column]].apply( fix_func ,axis=1)
+    sri_fixed_col = df_temp_clean.loc[ sri_err ][target_column].apply( fix_func )
+    #display (sri_fixed_col.head(3))
+
+    # 오류 수정한 데이터를 전처리 작업용 DataFrame에 반영
+    df_temp_clean.loc[ sri_err, target_column ] = sri_fixed_col
+
+    # 반영 결과 data 확인 
+    display ( "반영결과")
+    display ( df_temp_clean[sri_err].head(print_row_count))
+
+    # # 반영 결과 집계 확인 
+    # sri_err = df_temp_clean[ target_column ].apply( cond_sel )
+    # display ( sri_err.sum() )
+
+    return df_temp_clean
+
+# EDA 함수
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+
 
 #----
 
 #pandas에서 DataFrame을 요약해서 표시하지 않도록 설정
 pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_rows', None)
 
 #----
 # 그래프 한글 출력 깨짐 해결
@@ -34,7 +374,7 @@ plt.style.use('ggplot')
 font = {'size': 12,
         #'family': 'NanumBarunGothic'}
         'family': 'D2Coding'}
-mpl.rc('font', **font)
+matplotlib.rc('font', **font)
 #----- 
 
 
