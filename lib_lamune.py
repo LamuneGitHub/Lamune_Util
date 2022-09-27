@@ -203,7 +203,7 @@ def 랜덤_하이퍼파라미터_튜닝결과_그래프그리기 (cv_results_ , 
 
     # 성능지표 선 그래프
     ax2 = ax1.twinx()
-    y_col_name = score_col_name
+    y_col_name = score_col_name   # "mean_test_f1"
     ax2 = sns.lineplot ( data=df_tmp , x=x_col_name , y=y_col_name , label=y_col_name
         , alpha=0.2 , marker='o' #, color='b'#, sort = False 
         , ax=ax2)
