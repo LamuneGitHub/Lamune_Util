@@ -84,6 +84,7 @@ def print_line_s() :
 # EDA 함수
 
 
+
 # 결측치가 포함된 df를 반환 한다. ( copy 된 data)
 """
     str_replace = np.nan # 결측치를 변경할 문자
@@ -351,6 +352,86 @@ def fix_column_err_value ( df_temp_clean: pd.DataFrame , target_column: '수정�
     return df_temp_clean
 
 # EDA 함수
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+# 피쳐 엔지니어링
+
+
+# 컬럼명의 suffix 인 컬럼을 제거
+#
+def FE_컬럼명_drop_y(df, suffix= '_yy'):
+    # list comprehension of the cols that end with '_y'
+    to_drop = [x for x in df if x.endswith(suffix)]
+    df.drop(to_drop, axis=1, inplace=True)
+
+
+# 중복컬럼 없이 merge
+#
+def FE_merge_중복컬럼제거 ( *param, **param2 ) :
+  df_temp = pd.merge( *param , **param2 , suffixes=('', '_yy'))
+  
+  # 중복컬럼명 조회
+  lst_cols = df_temp.columns
+  lst_dup_cols_name = []
+  for col_name in lst_cols :
+    if col_name.endswith('_yy') :
+      org_col_name = col_name[:-3]
+      lst_dup_cols_name.append(org_col_name)
+
+  # 빈값을 머지한 컬럼의 값으로 변경
+  for col_name in lst_dup_cols_name :
+    df_temp.loc[df_temp[col_name].isnull() ,col_name ] = df_temp.loc[df_temp[col_name].isnull() , col_name+'_yy']
+
+  # _yy 중복 컬럼을 삭제  
+  FE_컬럼명_drop_y( df_temp ,'_yy')
+  
+  return df_temp
+
+
+def FE_컬럼앞에_구분명_추가 ( df_tmp , prefix ) :
+  
+  lst_columns_from = df_tmp.columns
+  lst_columsn_tobe = []
+  for col_name in lst_columns_from :
+      col_name_tmp = col_name.replace( " " , "_")
+      lst_columsn_tobe.append(  prefix + '_' +  col_name_tmp  )
+
+  df_tmp.columns = lst_columsn_tobe
+
+  return df_tmp
+
+
+def FE_날짜컬럼_추가( df_tmp , col_date_name_from='변환' , replace_index = False , type='D') :
+
+    if type == 'D' :
+
+        # 날짜 컬럼을 추가
+        #
+
+        # 날짜 컬럼을 맨 앞으로 순서변경 하기 위한 준비
+        lst_col_name = df_tmp.columns.to_list()
+        lst_col_name_dt = ['DT_date' , 'DT_Year', 'DT_Month' , 'DT_Day' , 'DT_DayOfWeek' , 'DT_DayOfYear' ]
+
+        # 날짜 값 컬럼 추가
+        col_date_name_to = 'DT_date'
+        df_tmp[col_date_name_to] = pd.to_datetime(df_tmp[col_date_name_from])
+        df_tmp['DT_Year'] = df_tmp[col_date_name_to] .dt.year
+        df_tmp['DT_Month'] = df_tmp[col_date_name_to] .dt.month
+        df_tmp['DT_Day'] = df_tmp[col_date_name_to] .dt.day
+        df_tmp['DT_DayOfWeek'] = df_tmp[col_date_name_to] .dt.day_of_week
+        df_tmp['DT_DayOfYear'] = df_tmp[col_date_name_to] .dt.day_of_year
+        
+        # 날짜 컬럼을 맨 앞으로 순서변경
+        df_tmp =df_tmp[ lst_col_name_dt + lst_col_name ]
+        df_tmp.drop( columns=[col_date_name_from] ,inplace=True)
+
+        # 인덱스를 날짜 값으로 변경
+        if replace_index :
+            df_tmp.index = df_tmp[col_date_name_to]
+
+    return df_tmp 
+
+# 피쳐 엔지니어링
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
 
@@ -673,3 +754,6 @@ def 하이퍼파라미터_튜닝결과_성능지표_저장 (dict_성능지표 , 
     print ( f"파일명 : {file_name} ")
 
     return df_성능지표_hist
+
+
+
