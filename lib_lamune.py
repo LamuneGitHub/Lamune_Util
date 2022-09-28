@@ -514,7 +514,7 @@ def FILE_DataFrame_저장 ( df_tmp , path  , fileName ,useParquet = True , useAu
   if useAutoFileName :  
     # 저장할 파일명 지정
     now = time
-    fileName = f"{fileName}_({now.strftime('%Y_%m_%d__%H%M%S_%s')})"
+    fileName = f"{fileName}_({now.strftime('%Y_%m_%d__%H%M%S')})"
   
   #TODO : OS에 따라서 경로 구분자가 달라지도록 기능 추가
   path_Spliter = '/'
@@ -605,7 +605,8 @@ pd.set_option('display.max_columns', None)
 plt.style.use('ggplot')
 font = {'size': 12,
         #'family': 'NanumBarunGothic'}
-        'family': 'D2Coding'}
+        # 'family': 'D2Coding'}
+        'family': 'Malgun Gothic'}
 matplotlib.rc('font', **font)
 #----- 
 
