@@ -17,6 +17,7 @@ drive.mount('/content/drive')
 #-----------------------------------------------------------------------------------
 # 라이브러리 로딩
 
+from cmath import nan
 import sys
 
 # if "google.colab" in sys.modules:
@@ -401,26 +402,87 @@ def FE_컬럼앞에_구분명_추가 ( df_tmp , prefix ) :
   return df_tmp
 
 
+# 달과 분기 맵핑  
+MAP_dict_month_quater = {1:1, 2:1, 3:1, 4:2, 5:2, 6:2, 7:3, 8:3, 9:3, 10:4, 11:4, 12:4 }
+MAP_dict_quater_month = { 1:[1,2,3] , 2:[4,5,6] , 3: [7,8,9] , 4:[10,11,12] }
+
+
 def FE_날짜컬럼_추가( df_tmp , col_date_name_from='변환' , replace_index = False , type='D') :
+
+    # 날짜 컬럼을 맨 앞으로 순서변경 하기 위한 준비
+    lst_col_name = df_tmp.columns.to_list()
+    lst_col_name_dt = ['DT_date' , 'DT_Year', 'DT_Qt', 'DT_Month' , 'DT_Day' , 'DT_DayOfWeek' , 'DT_DayOfYear' ]
+    col_date_name_to = 'DT_date'    
 
     if type == 'D' :
 
-        # 날짜 컬럼을 추가
-        #
+        # 날짜 값 컬럼 추가
+        df_tmp[col_date_name_to] = pd.to_datetime(df_tmp[col_date_name_from])
+        df_tmp['DT_Year'] = df_tmp[col_date_name_to].dt.year
+        df_tmp['DT_Qt'] = df_tmp[col_date_name_to].apply( lambda x: MAP_dict_month_quater[ x.month ] )
+        df_tmp['DT_Month'] = df_tmp[col_date_name_to].dt.month
+        df_tmp['DT_Day'] = df_tmp[col_date_name_to].dt.day
+        df_tmp['DT_DayOfWeek'] = df_tmp[col_date_name_to].dt.day_of_week
+        df_tmp['DT_DayOfYear'] = df_tmp[col_date_name_to].dt.day_of_year
+        
+        # 날짜 컬럼을 맨 앞으로 순서변경
+        df_tmp =df_tmp[ lst_col_name_dt + lst_col_name ]
+        df_tmp.drop( columns=[col_date_name_from] ,inplace=True)
 
-        # 날짜 컬럼을 맨 앞으로 순서변경 하기 위한 준비
-        lst_col_name = df_tmp.columns.to_list()
-        lst_col_name_dt = ['DT_date' , 'DT_Year', 'DT_Month' , 'DT_Day' , 'DT_DayOfWeek' , 'DT_DayOfYear' ]
+        # 인덱스를 날짜 값으로 변경
+        if replace_index :
+            df_tmp.index = df_tmp[col_date_name_to]
+
+    if type == 'M' :
 
         # 날짜 값 컬럼 추가
-        col_date_name_to = 'DT_date'
-        df_tmp[col_date_name_to] = pd.to_datetime(df_tmp[col_date_name_from])
-        df_tmp['DT_Year'] = df_tmp[col_date_name_to] .dt.year
-        df_tmp['DT_Month'] = df_tmp[col_date_name_to] .dt.month
-        df_tmp['DT_Day'] = df_tmp[col_date_name_to] .dt.day
-        df_tmp['DT_DayOfWeek'] = df_tmp[col_date_name_to] .dt.day_of_week
-        df_tmp['DT_DayOfYear'] = df_tmp[col_date_name_to] .dt.day_of_year
+
+        # 달의 마지막 날로 날짜를 바꾼다.
+        def inner_func0001 ( str_date ) :
+          date_tmp_0001 = pd.to_datetime(str_date)
+          date_tmp_0001 = date_tmp_0001.replace( day=date_tmp_0001.days_in_month) 
+          return date_tmp_0001
+
+        df_tmp[col_date_name_to] = df_tmp[col_date_name_from].apply(inner_func0001)
+        df_tmp['DT_Year'] = df_tmp[col_date_name_to].dt.year
+        df_tmp['DT_Qt'] = df_tmp[col_date_name_to].apply( lambda x: MAP_dict_month_quater[ x.month ] )
+        df_tmp['DT_Month'] = df_tmp[col_date_name_to].dt.month
+        df_tmp['DT_Day'] = df_tmp[col_date_name_to].apply( lambda x: x.days_in_month  )
+        df_tmp['DT_DayOfWeek'] = 'M'
+        df_tmp['DT_DayOfYear'] = df_tmp[col_date_name_to].dt.day_of_year
+
         
+        # 날짜 컬럼을 맨 앞으로 순서변경
+        df_tmp =df_tmp[ lst_col_name_dt + lst_col_name ]
+        df_tmp.drop( columns=[col_date_name_from] ,inplace=True)
+
+        # 인덱스를 날짜 값으로 변경
+        if replace_index :
+            df_tmp.index = df_tmp[col_date_name_to]
+  
+    if type == 'Q' :
+
+        # 날짜 값 컬럼 추가
+
+        # 분기를 달로 변경
+        def inner_func0001 ( str_date ) :
+          year , qt= str_date.split('/')
+          month_last = MAP_dict_quater_month[int(qt[1:])][-1]
+          date_tmp_0001 = pd.to_datetime(year)
+          date_tmp_0001 = date_tmp_0001.replace( month=month_last) 
+          date_tmp_0001 = date_tmp_0001.replace( day=date_tmp_0001.days_in_month) 
+          return date_tmp_0001
+
+
+        # 마지막 달의 마지막 날로 날짜를 바꾼다.
+        df_tmp[col_date_name_to] = df_tmp[col_date_name_from].apply(inner_func0001)
+        df_tmp['DT_Year'] = df_tmp[col_date_name_to].dt.year
+        df_tmp['DT_Qt'] = df_tmp[col_date_name_to].apply( lambda x: MAP_dict_month_quater[ x.month ] )
+        df_tmp['DT_Month'] = df_tmp[col_date_name_to].dt.month
+        df_tmp['DT_Day'] = df_tmp[col_date_name_to].apply( lambda x: x.days_in_month  )
+        df_tmp['DT_DayOfWeek'] = 'Q'
+        df_tmp['DT_DayOfYear'] = df_tmp[col_date_name_to].dt.day_of_year
+
         # 날짜 컬럼을 맨 앞으로 순서변경
         df_tmp =df_tmp[ lst_col_name_dt + lst_col_name ]
         df_tmp.drop( columns=[col_date_name_from] ,inplace=True)
@@ -434,8 +496,97 @@ def FE_날짜컬럼_추가( df_tmp , col_date_name_from='변환' , replace_index
 # 피쳐 엔지니어링
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
+# 파일저장
+
+import parquet
+
+# DataFrame을 자료형 정보까지 함께 저장한다.
+def FILE_DataFrame_저장 ( df_tmp , path  , fileName ,useParquet = True , useAutoFileName = True , index= True) :
+  
+  # 파일 확장자 결정
+  ext = nan
+  if useParquet :
+    ext = 'parquet'
+  else :
+    ext = 'csv'
+
+  # 파일명 결정
+  if useAutoFileName :  
+    # 저장할 파일명 지정
+    now = time
+    fileName = f"{fileName}_({now.strftime('%Y_%m_%d__%H%M%S_%s')})"
+  
+  #TODO : OS에 따라서 경로 구분자가 달라지도록 기능 추가
+  path_Spliter = '/'
+  file_path_name =  f"{path}{path_Spliter}{fileName}.{ext}"
+  print ( f"파일명 : {file_path_name} ")
+  
+  # 파일 저장
+  if useParquet :
+    df_tmp.to_parquet(file_path_name)
+  else :
+    df_tmp.to_csv( file_path_name, index=index )
 
 
+# 파일저장
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+# DB
+
+from sqlalchemy import create_engine
+import pymysql
+
+db유저이름 = 'root'
+db_password = 'tkfkdgo0)'
+host_address ='localhost'
+db_name = 'prj_02_db'
+
+
+def DB_db접속conn ( db유저이름=db유저이름 , db_password=db_password , host_address=host_address , db_name=db_name ) :
+  db_connection_str = f"mysql+pymysql://{db유저이름}:{db_password}@{host_address}/{db_name}"
+  db_connection = create_engine(db_connection_str)
+  conn = db_connection.connect()
+
+  return db_connection, conn
+
+
+def DB_DataFrame을DB에저장 ( df_tmp, table_name , if_exists='replace', index=False) :
+
+  db_connection, conn = DB_db접속conn()
+  df_tmp.to_sql(name=table_name, con=db_connection, if_exists=if_exists ,index=index)  
+
+"""
+
+# SQL 사용 case 01
+db = pymysql.connect(
+    user='root', 
+    passwd='tkfkdgo0)', 
+    host='localhost', 
+    db='prj_02_db', 
+    charset='utf8'
+)
+cursor = db.cursor(pymysql.cursors.DictCursor)
+
+sql = "select a.DT_date , a.DT_DayOfYear , a.원유로_환율_원자료 from df_daily_data as a;"
+cursor.execute(sql)
+df_result = pd.DataFrame(cursor.fetchall())
+df_result
+
+
+
+# SQL 사용 case 02
+df_result = pd.read_sql(sql , db)
+df_result
+
+
+"""
+
+
+
+
+# DB
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
 #----
 
 #pandas에서 DataFrame을 요약해서 표시하지 않도록 설정
