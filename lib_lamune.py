@@ -34,7 +34,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-# 상필이 작업용 라이브러리
+# 라이브러리
 from importlib import reload
 import pickle
 import time
@@ -78,6 +78,12 @@ def print_line_m() :
   print ("\n-----------------------")
 def print_line_s() :
   print ("\n----------")
+
+
+# 리스트 - 리스트 구현
+def LIST_차이 ( lst_from , lst_target ) :  
+  return [x for x in lst_from if x not in lst_target]
+
 
 # 기본 함수 정의
 #-----------------------------------------------------------------------------------
