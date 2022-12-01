@@ -670,7 +670,7 @@ def dict파일로드 ( v_file_name ) :
 #-------
 
 # 최적 값에 대한 X_val data의 성능지표 및 기록
-# ret =  dict_성능지표
+# ret =  dict_성능지표 ,평가
 #
 def 성능지표계산 ( model, x_train, y_train, x_test, y_test , need_train = True  ):
 
