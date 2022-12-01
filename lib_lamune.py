@@ -247,7 +247,7 @@ def eda_info (df_param, need_category = False , category_count = 20) :
   print ( df_target.describe())
 
 
-  # 컬럼별 포함된 큭수문자 의 종류 조회
+  # 컬럼별 포함된 특수문자 의 종류 조회
   print_line()
   print( "# 컬럼별 포함된 특수문자 종류 ")
   regx_특수문자제외한 = r'([^0-9a-zA-Z]+)'
